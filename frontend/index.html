@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>F.R.I.D.A.Y. - AI Assistant OS</title>
+    <style>
+      :root {
+        --bg-deep: #030712;
+        --neon-blue: #00f3ff;
+        --neon-cyan: #00ffcc;
+        --panel-bg: rgba(9, 20, 38, 0.9);
+        --border-glow: rgba(0, 243, 255, 0.4);
+        --text-main: #e0f7fa;
+      }
+
+      body {
+        font-family: "Courier New", Courier, monospace, sans-serif;
+        background-color: var(--bg-deep);
+        background-image:
+          radial-gradient(circle at 50% 50%, #0a192f 0%, #030712 100%),
+          linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+        background-size:
+          100% 100%,
+          30px 30px,
+          30px 30px;
+        color: var(--text-main);
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .container {
+        background: var(--panel-bg);
+        border: 1px solid var(--neon-blue);
+        padding: 25px;
+        border-radius: 14px;
+        box-shadow:
+          0 0 30px var(--border-glow),
+          inset 0 0 20px rgba(0, 243, 255, 0.15);
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+        backdrop-filter: blur(12px);
+      }
+
+      .header-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px dashed var(--neon-blue);
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+      }
+
+      h1 {
+        color: var(--neon-blue);
+        font-size: 20px;
+        margin: 0;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px var(--neon-blue);
+      }
+
+      .status {
+        font-size: 11px;
+        color: var(--neon-cyan);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* 聲波動畫核心 */
+      .hologram-core {
+        position: relative;
+        background: rgba(0, 10, 20, 0.95);
+        border: 1px solid var(--neon-blue);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
+      }
+
+      .waveform-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        height: 40px;
+      }
+
+      .bar {
+        width: 5px;
+        height: 8px;
+        background-color: rgba(0, 243, 255, 0.3);
+        border-radius: 3px;
+        transition: height 0.15s ease;
+      }
+
+      .waveform-container.active .bar {
+        background-color: var(--neon-blue);
+        box-shadow: 0 0 10px var(--neon-blue);
+        animation: sci-fi-wave 0.6s infinite ease-in-out alternate;
+      }
+
+      .waveform-container.active .bar:nth-child(1) {
+        animation-delay: 0.05s;
+      }
+      .waveform-container.active .bar:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .waveform-container.active .bar:nth-child(3) {
+        animation-delay: 0.1s;
+      }
+      .waveform-container.active .bar:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+      .waveform-container.active .bar:nth-child(5) {
+        animation-delay: 0.15s;
+      }
+      .waveform-container.active .bar:nth-child(6) {
+        animation-delay: 0.25s;
+      }
+      .waveform-container.active .bar:nth-child(7) {
+        animation-delay: 0.08s;
+      }
+      .waveform-container.active .bar:nth-child(8) {
+        animation-delay: 0.35s;
+      }
+
+      @keyframes sci-fi-wave {
+        0% {
+          height: 8px;
+          background-color: var(--neon-cyan);
+        }
+        50% {
+          height: 38px;
+          background-color: var(--neon-blue);
+        }
+        100% {
+          height: 12px;
+          background-color: var(--neon-cyan);
+        }
+      }
+
+      .core-status-text {
+        font-size: 12px;
+        color: #8be9fd;
+        margin-top: 8px;
+        letter-spacing: 1px;
+      }
+
+      /* 聊天視窗 */
+      .chat-box {
+        border: 1px solid rgba(0, 243, 255, 0.3);
+        border-radius: 8px;
+        height: 220px;
+        overflow-y: auto;
+        padding: 12px;
+        text-align: left;
+        margin-bottom: 15px;
+        background: rgba(3, 7, 18, 0.85);
+        font-size: 13px;
+      }
+
+      .message {
+        margin-bottom: 12px;
+        line-height: 1.5;
+      }
+
+      .message.user {
+        color: #ff79c6;
+        text-align: right;
+      }
+
+      .message.friday {
+        color: var(--neon-blue);
+        text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+      }
+
+      .input-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 12px;
+        background: rgba(3, 7, 18, 0.9);
+        border: 1px solid var(--neon-blue);
+        color: var(--text-main);
+        border-radius: 6px;
+        outline: none;
+        font-family: inherit;
+      }
+
+      button {
+        padding: 0 22px;
+        background: linear-gradient(135deg, #007acc, var(--neon-blue));
+        color: #030712;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        box-shadow: 0 0 10px var(--neon-blue);
+        font-family: inherit;
+        letter-spacing: 1px;
+      }
+
+      button:hover {
+        background: var(--neon-cyan);
+        box-shadow: 0 0 15px var(--neon-cyan);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header-box">
+        <h1>F.R.I.D.A.Y. OS</h1>
+        <div id="status" class="status">● 系統連線中...</div>
+      </div>
+
+      <!-- 全息聲波核心 -->
+      <div class="hologram-core">
+        <div class="waveform-container" id="waveform">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+        <div class="core-status-text" id="coreStatus">
+          核心待命：等待語音或指令輸入...
+        </div>
+      </div>
+
+      <div class="chat-box" id="chatBox">
+        <div class="message friday">
+          <strong>F.R.I.D.A.Y.：</strong>
+          系統初始化完畢。主人，請問今天想聊些什麼或記錄什麼任務？
+        </div>
+      </div>
+
+      <div class="input-group">
+        <input
+          type="text"
+          id="userInput"
+          placeholder="與 Friday 對話或輸入「幫我記...」"
+          onkeypress="handleKeyPress(event)"
+        />
+        <button onclick="sendMessage()">執行</button>
+      </div>
+    </div>
+
+    <script>
+      const backendUrl = "http://localhost:3001/api/chat";
+
+      window.onload = async () => {
+        try {
+          const res = await fetch("http://localhost:3001");
+          if (res.ok) {
+            document.getElementById("status").innerText = "● HOST CONNECTED";
+          }
+        } catch (err) {
+          document.getElementById("status").style.color = "#ff5555";
+          document.getElementById("status").innerText =
+            "○ OFFLINE (請啟動後端)";
+        }
+      };
+
+      function handleKeyPress(e) {
+        if (e.key === "Enter") sendMessage();
+      }
+
+      async function sendMessage() {
+        const inputField = document.getElementById("userInput");
+        const chatBox = document.getElementById("chatBox");
+        const waveform = document.getElementById("waveform");
+        const coreStatus = document.getElementById("coreStatus");
+        const text = inputField.value.trim();
+
+        if (!text) return;
+
+        chatBox.innerHTML += `<div class="message user"><strong>您：</strong> ${text}</div>`;
+        inputField.value = "";
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // 啟動聲波跳動
+        waveform.classList.add("active");
+        coreStatus.innerText = "正在進行語意運算中...";
+
+        try {
+          const response = await fetch(backendUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
+
+          const data = await response.json();
+          chatBox.innerHTML += `<div class="message friday"><strong>F.R.I.D.A.Y.：</strong> ${data.reply}</div>`;
+        } catch (error) {
+          chatBox.innerHTML += `<div class="message friday" style="color: #ff5555;"><strong>F.R.I.D.A.Y.：</strong> 連線錯誤：無法聯繫後端伺服器。</div>`;
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+        coreStatus.innerText = "核心待命：等待語音或指令輸入...";
+        waveform.classList.remove("active");
+      }
+    </script>
+  </body>
+</html>
