@@ -1,68 +1,183 @@
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const axios = require('axios'); // 用來跟 AI 模型通訊的工具
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+public class Server {
+    private static final String MEMORY_FILE = "memory.json";
 
-app.use(cors());
-app.use(express.json());
+    public static void main(String[] args) throws IOException {
+        int port = 3001;
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        
+        File file = new File(MEMORY_FILE);
+        if (!file.exists()) {
+            Files.write(file.toPath(), "[]".getBytes(StandardCharsets.UTF_8));
+        }
 
-// 確保記憶資料夾與檔案存在
-const memoryFile = path.join(__dirname, 'memory.json');
-if (!fs.existsSync(memoryFile)) {
-    fs.writeFileSync(memoryFile, JSON.stringify([]));
-}
+        // 1. 根目錄測試路由 (GET)
+        server.createContext("/", exchange -> {
+            addCorsHeaders(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            String response = "{\"status\":\"success\",\"message\":\"F.R.I.D.A.Y. Java 核心伺服器運行中\"}";
+            sendJsonResponse(exchange, 200, response);
+        });
 
-// 根目錄測試路由
-app.get('/', (req, res) => {
-    res.json({ status: 'success', message: 'F.R.I.D.A.Y. 核心系統運作中' });
-});
+        // 2. 對話與記事核心 API (POST /api/chat)
+        server.createContext("/api/chat", exchange -> {
+            addCorsHeaders(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
 
-// 核心對話與思考 API
-app.post('/api/chat', async (req, res) => {
-    const { message } = req.body;
-    if (!message) {
-        return res.status(400).json({ error: '訊息不能為空' });
+            if ("POST".equals(exchange.getRequestMethod())) {
+                try {
+                    InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8);
+                    BufferedReader br = new BufferedReader(isr);
+                    StringBuilder requestBody = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        requestBody.append(line);
+                    }
+
+                    String bodyStr = requestBody.toString();
+                    String userMessage = extractMessageFromJson(bodyStr);
+
+                    String aiReply;
+                    if (userMessage.contains("幫我記") || userMessage.contains("記錄") || userMessage.contains("筆記")) {
+                        saveMemory(userMessage);
+                        aiReply = "[Java 記憶寫入] 主人，這件事我已經幫您記錄在本地檔案中了：「" + userMessage + "」。";
+                    } else {
+                        try {
+                            aiReply = callOllama(userMessage);
+                            if (aiReply == null) {
+                                aiReply = "[AI 待命模式] 主人，我收到您的話：「" + userMessage + "」。目前 Ollama 尚未啟動， Mac mini 部署後即可全面解鎖 AI 思考！";
+                            }
+                        } catch (Exception e) {
+                            aiReply = "F.R.I.D.A.Y. 核心已收到您的訊息：「" + userMessage + "」。系統運作正常。";
+                        }
+                    }
+
+                    String jsonResponse = "{\"reply\":\"" + escapeJson(aiReply) + "\"}";
+                    sendJsonResponse(exchange, 200, jsonResponse);
+                } catch (Exception e) {
+                    String errResponse = "{\"reply\":\"[系統錯誤] 處理請求時發生異常。\"}";
+                    sendJsonResponse(exchange, 500, errResponse);
+                }
+            }
+        });
+
+        server.setExecutor(null);
+        server.start();
+        System.out.println("F.R.I.D.A.Y. Java 伺服器正在運行中，請訪問 http://localhost:" + port);
     }
 
-    let aiReply = "";
-    let isMemorySaved = false;
+    private static void addCorsHeaders(HttpExchange exchange) throws IOException {
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
+    }
 
-    // 1. 如果主人要求記事，直接寫入記憶檔
-    if (message.includes('幫我記') || message.includes('記錄') || message.includes('筆記')) {
-        const rawData = fs.readFileSync(memoryFile);
-        const memories = JSON.parse(rawData);
-        
-        memories.push({ content: message, time: new Date().toISOString() });
-        fs.writeFileSync(memoryFile, JSON.stringify(memories, null, 2));
-        
-        aiReply = `[記憶已寫入] 主人，這件事我已經幫您記錄下來了：「${message}」。`;
-        isMemorySaved = true;
-    } else {
-        // 2. 讓 AI 獨立思考：嘗試串接本地 Ollama AI 模型 (例如 Llama 3)
+    private static void sendJsonResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.getResponseHeaders().add("Content-Type", "application/json; charset=UTF-8");
+        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(statusCode, bytes.length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(bytes);
+        os.close();
+    }
+
+    // 強化版 JSON 訊息解析，防止抓不到欄位
+    private static String extractMessageFromJson(String json) {
         try {
-            const ollamaResponse = await axios.post('http://localhost:11434/api/generate', {
-                model: 'llama3', 
-                prompt: `你是一個名為 F.R.I.D.A.Y. 的鋼鐵人專屬 AI 管家。你的個性冷靜、聰明、忠誠，說話帶有科技感。請針對以下主人的話進行獨立思考並回答：${message}`,
-                stream: false
-            }, { timeout: 8000 }); // 設定 8 秒逾時
+            int idx = json.indexOf("message");
+            if (idx != -1) {
+                int start = json.indexOf("\"", idx + 7);
+                start = json.indexOf("\"", start + 1) + 1;
+                int end = json.indexOf("\"", start);
+                if (start > 0 && end > start) {
+                    return json.substring(start, end);
+                }
+            }
+        } catch (Exception ignored) {}
+        return json.replaceAll("[{}\"\\[\\]]", "").trim();
+    }
 
-            aiReply = ollamaResponse.data.response.trim();
-        } catch (error) {
-            // 如果本地 Ollama 尚未啟動，提供具備 AI 智慧感與引導性的動態回覆
-            aiReply = `[AI 核心待命] 主人，我接收到您的訊息：「${message}」。目前本地 AI 引擎（Ollama）尚未啟動，等待 9 月底 Mac mini 到貨並全面部署後，我將完全解鎖本地獨立思考能力。目前我能為您處理基礎對話與記事！`;
+    private static void saveMemory(String content) {
+        try {
+            File file = new File(MEMORY_FILE);
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            
+            if (file.exists()) {
+                lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+            }
+            
+            if (lines.isEmpty()) {
+                lines.add("[");
+                lines.add("]");
+            }
+
+            String newEntry = "  {\"content\": \"" + escapeJson(content) + "\", \"time\": \"" + java.time.LocalDateTime.now() + "\"},";
+            
+            if (lines.size() >= 1) {
+                lines.add(lines.size() - 1, newEntry);
+            } else {
+                lines.add(1, newEntry);
+            }
+
+            Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    res.json({
-        reply: aiReply,
-        saved: isMemorySaved
-    });
-});
+    private static String callOllama(String promptText) {
+        try {
+            URL url = new URL("http://localhost:11434/api/generate");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(3000);
 
-app.listen(PORT, () => {
-    console.log(`F.R.I.D.A.Y. 伺服器正在運行於 http://localhost:${PORT}`);
-});
+            String jsonInputString = "{\"model\": \"llama3\", \"prompt\": \"你是一個名為 F.R.I.D.A.Y. 的 AI 管家。請注意：無論主人(DING)說什麼語言，你都必須【強制使用流利的繁體中文】來回答，語氣要冷靜且充滿科技感。主人說： " + escapeJson(promptText) + "\", \"stream\": false}";
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+                String resStr = response.toString();
+                int rIdx = resStr.indexOf("response");
+                if (rIdx != -1) {
+                    int start = resStr.indexOf("\"", rIdx + 8);
+                    start = resStr.indexOf("\"", start + 1) + 1;
+                    int end = resStr.indexOf("\"", start);
+                    if (start > 0 && end > start) {
+                        return resStr.substring(start, end).replace("\\n", " ");
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private static String escapeJson(String str) {
+        return str.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", " ");
+    }
+}

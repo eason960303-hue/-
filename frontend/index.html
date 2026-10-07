@@ -5,281 +5,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>F.R.I.D.A.Y. - AI Assistant OS</title>
     <style>
-      :root {
-        --bg-deep: #030712;
-        --neon-blue: #00f3ff;
-        --neon-cyan: #00ffcc;
-        --panel-bg: rgba(9, 20, 38, 0.9);
-        --border-glow: rgba(0, 243, 255, 0.4);
-        --text-main: #e0f7fa;
-      }
-
-      body {
-        font-family: "Courier New", Courier, monospace, sans-serif;
-        background-color: var(--bg-deep);
-        background-image:
-          radial-gradient(circle at 50% 50%, #0a192f 0%, #030712 100%),
-          linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-        background-size:
-          100% 100%,
-          30px 30px,
-          30px 30px;
-        color: var(--text-main);
+      * {
+        box-sizing: border-box;
         margin: 0;
-        padding: 20px;
+        padding: 0;
+      }
+      body {
+        background-color: #050b14;
+        color: #00ffff;
+        font-family: "Courier New", Courier, monospace;
+        width: 100vw;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
         overflow: hidden;
       }
-
-      .container {
-        background: var(--panel-bg);
-        border: 1px solid var(--neon-blue);
-        padding: 25px;
-        border-radius: 14px;
+      /* 智慧適配：自動根據任何視窗大小調整佔比 */
+      .os-container {
+        width: 94vw;
+        height: 94vh;
+        max-width: 1600px;
+        max-height: 950px;
+        background: rgba(0, 20, 40, 0.85);
+        border: 2px solid #00ffff;
         box-shadow:
-          0 0 30px var(--border-glow),
-          inset 0 0 20px rgba(0, 243, 255, 0.15);
-        width: 100%;
-        max-width: 500px;
-        text-align: center;
-        backdrop-filter: blur(12px);
+          0 0 30px rgba(0, 255, 255, 0.25),
+          inset 0 0 20px rgba(0, 255, 255, 0.1);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
       }
-
-      .header-box {
+      .os-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px dashed var(--neon-blue);
-        padding-bottom: 10px;
+        border-bottom: 1px dashed #00ffff;
+        padding-bottom: 12px;
         margin-bottom: 15px;
-      }
-
-      h1 {
-        color: var(--neon-blue);
-        font-size: 20px;
-        margin: 0;
+        font-size: 1.25rem;
         letter-spacing: 2px;
-        text-shadow: 0 0 10px var(--neon-blue);
       }
-
-      .status {
-        font-size: 11px;
-        color: var(--neon-cyan);
-        text-transform: uppercase;
-        letter-spacing: 1px;
+      .status-indicator {
+        font-size: 0.9rem;
+        color: #00ffcc;
       }
-
-      /* 聲波動畫核心 */
-      .hologram-core {
-        position: relative;
-        background: rgba(0, 10, 20, 0.95);
-        border: 1px solid var(--neon-blue);
-        border-radius: 10px;
-        padding: 15px;
+      /* 系統動態狀態列 */
+      .core-status-bar {
+        background: rgba(0, 255, 255, 0.08);
+        border: 1px solid #00ffff;
+        padding: 10px 15px;
         margin-bottom: 15px;
-        box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
-      }
-
-      .waveform-container {
+        border-radius: 6px;
+        font-size: 0.95rem;
         display: flex;
-        justify-content: center;
         align-items: center;
-        gap: 5px;
-        height: 40px;
+        justify-content: space-between;
       }
-
-      .bar {
-        width: 5px;
-        height: 8px;
-        background-color: rgba(0, 243, 255, 0.3);
-        border-radius: 3px;
-        transition: height 0.15s ease;
+      .waveform {
+        display: inline-block;
+        letter-spacing: 3px;
+        color: #00ffff;
+        opacity: 0.4;
       }
-
-      .waveform-container.active .bar {
-        background-color: var(--neon-blue);
-        box-shadow: 0 0 10px var(--neon-blue);
-        animation: sci-fi-wave 0.6s infinite ease-in-out alternate;
+      .waveform.active {
+        animation: pulse 1s infinite alternate;
+        opacity: 1;
       }
-
-      .waveform-container.active .bar:nth-child(1) {
-        animation-delay: 0.05s;
-      }
-      .waveform-container.active .bar:nth-child(2) {
-        animation-delay: 0.2s;
-      }
-      .waveform-container.active .bar:nth-child(3) {
-        animation-delay: 0.1s;
-      }
-      .waveform-container.active .bar:nth-child(4) {
-        animation-delay: 0.3s;
-      }
-      .waveform-container.active .bar:nth-child(5) {
-        animation-delay: 0.15s;
-      }
-      .waveform-container.active .bar:nth-child(6) {
-        animation-delay: 0.25s;
-      }
-      .waveform-container.active .bar:nth-child(7) {
-        animation-delay: 0.08s;
-      }
-      .waveform-container.active .bar:nth-child(8) {
-        animation-delay: 0.35s;
-      }
-
-      @keyframes sci-fi-wave {
+      @keyframes pulse {
         0% {
-          height: 8px;
-          background-color: var(--neon-cyan);
-        }
-        50% {
-          height: 38px;
-          background-color: var(--neon-blue);
+          opacity: 0.3;
         }
         100% {
-          height: 12px;
-          background-color: var(--neon-cyan);
+          opacity: 1;
+          text-shadow: 0 0 8px #00ffff;
         }
       }
-
-      .core-status-text {
-        font-size: 12px;
-        color: #8be9fd;
-        margin-top: 8px;
-        letter-spacing: 1px;
-      }
-
-      /* 聊天視窗 */
+      /* 聊天紀錄卷軸區塊 (自動填滿剩餘高度並支援隨視窗延展) */
       .chat-box {
-        border: 1px solid rgba(0, 243, 255, 0.3);
-        border-radius: 8px;
-        height: 220px;
-        overflow-y: auto;
-        padding: 12px;
-        text-align: left;
-        margin-bottom: 15px;
-        background: rgba(3, 7, 18, 0.85);
-        font-size: 13px;
-      }
-
-      .message {
-        margin-bottom: 12px;
-        line-height: 1.5;
-      }
-
-      .message.user {
-        color: #ff79c6;
-        text-align: right;
-      }
-
-      .message.friday {
-        color: var(--neon-blue);
-        text-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
-      }
-
-      .input-group {
-        display: flex;
-        gap: 10px;
-      }
-
-      input[type="text"] {
         flex: 1;
-        padding: 12px;
-        background: rgba(3, 7, 18, 0.9);
-        border: 1px solid var(--neon-blue);
-        color: var(--text-main);
+        background: rgba(0, 5, 10, 0.7);
+        border: 1px solid rgba(0, 255, 255, 0.3);
         border-radius: 6px;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 15px;
+      }
+      .message {
+        padding: 12px 16px;
+        border-radius: 8px;
+        max-width: 75%;
+        line-height: 1.6;
+        font-size: 1rem;
+        word-break: break-all;
+      }
+      .message.user {
+        background: rgba(0, 150, 255, 0.2);
+        border: 1px solid #0099ff;
+        align-self: flex-end;
+        color: #ffffff;
+      }
+      .message.friday {
+        background: rgba(0, 255, 255, 0.1);
+        border: 1px solid #00ffff;
+        align-self: flex-start;
+        color: #00ffff;
+      }
+      /* 底部輸入列 */
+      .input-area {
+        display: flex;
+        gap: 12px;
+      }
+      .input-area input {
+        flex: 1;
+        background: rgba(0, 10, 20, 0.95);
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        padding: 14px 18px;
+        border-radius: 6px;
+        font-size: 1rem;
         outline: none;
-        font-family: inherit;
+        font-family: "Courier New", Courier, monospace;
       }
-
-      button {
-        padding: 0 22px;
-        background: linear-gradient(135deg, #007acc, var(--neon-blue));
-        color: #030712;
-        font-weight: bold;
+      .input-area input:focus {
+        box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+      }
+      .input-area button {
+        background: #00ffff;
+        color: #050b14;
         border: none;
+        padding: 0 30px;
         border-radius: 6px;
+        font-weight: bold;
+        font-size: 1rem;
         cursor: pointer;
-        box-shadow: 0 0 10px var(--neon-blue);
-        font-family: inherit;
-        letter-spacing: 1px;
+        transition: 0.2s;
+        font-family: "Courier New", Courier, monospace;
       }
-
-      button:hover {
-        background: var(--neon-cyan);
-        box-shadow: 0 0 15px var(--neon-cyan);
+      .input-area button:hover {
+        background: #00b3b3;
+        box-shadow: 0 0 12px #00ffff;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="header-box">
-        <h1>F.R.I.D.A.Y. OS</h1>
-        <div id="status" class="status">● 系統連線中...</div>
+    <div class="os-container">
+      <!-- 頂部標題列 -->
+      <div class="os-header">
+        <span>F.R.I.D.A.Y. OS (Adaptive UI)</span>
+        <span class="status-indicator" id="hostStatus">● HOST CONNECTED</span>
       </div>
 
-      <!-- 全息聲波核心 -->
-      <div class="hologram-core">
-        <div class="waveform-container" id="waveform">
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-          <div class="bar"></div>
-        </div>
-        <div class="core-status-text" id="coreStatus">
-          核心待命：等待語音或指令輸入...
-        </div>
+      <!-- 系統動態狀態列 -->
+      <div class="core-status-bar">
+        <span id="coreStatus">核心待命：等待語音或指令輸入...</span>
+        <span class="waveform" id="waveform">IIIIIIII</span>
       </div>
 
+      <!-- 聊天訊息卷軸區 -->
       <div class="chat-box" id="chatBox">
         <div class="message friday">
-          <strong>F.R.I.D.A.Y.：</strong>
-          系統初始化完畢。主人，請問今天想聊些什麼或記錄什麼任務？
+          <strong>F.R.I.D.A.Y.：</strong
+          >系統初始化完畢。主人，請問今天想聊些什麼或記錄什麼任務？
         </div>
       </div>
 
-      <div class="input-group">
+      <!-- 底部輸入列 -->
+      <div class="input-area">
         <input
           type="text"
           id="userInput"
           placeholder="與 Friday 對話或輸入「幫我記...」"
-          onkeypress="handleKeyPress(event)"
+          autofocus
         />
-        <button onclick="sendMessage()">執行</button>
+        <button
+          type="button"
+          onclick="
+            event.preventDefault();
+            sendMessage();
+          "
+        >
+          執行
+        </button>
       </div>
     </div>
 
     <script>
-      const backendUrl = "http://localhost:3001/api/chat";
+      const inputField = document.getElementById("userInput");
 
-      window.onload = async () => {
-        try {
-          const res = await fetch("http://localhost:3001");
-          if (res.ok) {
-            document.getElementById("status").innerText = "● HOST CONNECTED";
-          }
-        } catch (err) {
-          document.getElementById("status").style.color = "#ff5555";
-          document.getElementById("status").innerText =
-            "○ OFFLINE (請啟動後端)";
+      // 監聽鍵盤事件，確保按 Enter 能正確送出且不重新整理頁面
+      inputField.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault(); // 絕對阻止預設表單行為
+          sendMessage();
         }
-      };
-
-      function handleKeyPress(e) {
-        if (e.key === "Enter") sendMessage();
-      }
+      });
 
       async function sendMessage() {
-        const inputField = document.getElementById("userInput");
         const chatBox = document.getElementById("chatBox");
         const waveform = document.getElementById("waveform");
         const coreStatus = document.getElementById("coreStatus");
@@ -287,20 +213,24 @@
 
         if (!text) return;
 
+        // 立即顯示使用者訊息
         chatBox.innerHTML += `<div class="message user"><strong>您：</strong> ${text}</div>`;
-        inputField.value = "";
+        inputField.value = ""; // 清空輸入框
         chatBox.scrollTop = chatBox.scrollHeight;
 
-        // 啟動聲波跳動
         waveform.classList.add("active");
         coreStatus.innerText = "正在進行語意運算中...";
 
         try {
-          const response = await fetch(backendUrl, {
+          const response = await fetch("http://localhost:3001/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: text }),
           });
+
+          if (!response.ok) {
+            throw new Error("伺服器回應異常");
+          }
 
           const data = await response.json();
           chatBox.innerHTML += `<div class="message friday"><strong>F.R.I.D.A.Y.：</strong> ${data.reply}</div>`;
